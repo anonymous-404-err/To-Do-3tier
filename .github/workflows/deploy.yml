@@ -5,80 +5,44 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # JOB 1: Test & Lint Backend
-  # ---------------------------------------------------------------------------
   test-backend:
     name: Build & Check Backend
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install Dependencies
-        run: |
+      - run: |
           cd backend
-          npm ci
+          npm install
+      - run: docker build -t backend-test ./backend
 
-      - name: Validate Backend Dockerfile
-        run: |
-          docker build -t backend-test ./backend
-
-  # ---------------------------------------------------------------------------
-  # JOB 2: Test & Build Frontend
-  # ---------------------------------------------------------------------------
   test-frontend:
     name: Build & Check Frontend
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install Dependencies
-        run: |
+      - run: |
           cd frontend
-          npm ci
-
-      - name: Build React App (Vite)
-        run: |
+          npm install
+      - run: |
           cd frontend
           npm run build
+      - run: docker build --build-arg VITE_API_URL=https://placeholder.onrender.com/api/todos -t frontend-test ./frontend
 
-      - name: Validate Frontend Dockerfile
-        run: |
-          docker build --build-arg VITE_API_URL=https://placeholder.onrender.com/api/todos -t frontend-test ./frontend
-
-  # ---------------------------------------------------------------------------
-  # JOB 3: Deploy to Render (Only on push to main)
-  # ---------------------------------------------------------------------------
   deploy:
     name: Deploy to Render
     needs: [test-backend, test-frontend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-
     steps:
       - name: Trigger Backend Deployment
-        run: |
-          echo "Triggering Render Backend Build..."
-          curl -s -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
-
+        run: curl -s -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
       - name: Trigger Frontend Deployment
-        run: |
-          echo "Triggering Render Frontend Build..."
-          curl -s -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+        run: curl -s -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
