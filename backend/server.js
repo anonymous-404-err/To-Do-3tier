@@ -34,4 +34,13 @@ app.post('/api/todos', async (req, res) => {
   }
 });
 
+app.delete('/api/todos/:id', async (req, res) => {
+  try {
+    await Todo.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Todo deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete todo' });
+  }
+});
+
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
